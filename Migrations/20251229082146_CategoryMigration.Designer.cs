@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using _3dprint_inventory_api;
 
@@ -10,9 +11,11 @@ using _3dprint_inventory_api;
 namespace _3dprint_inventory_api.Migrations
 {
     [DbContext(typeof(Db))]
-    partial class DbModelSnapshot : ModelSnapshot
+    [Migration("20251229082146_CategoryMigration")]
+    partial class CategoryMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
@@ -62,9 +65,6 @@ namespace _3dprint_inventory_api.Migrations
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("FileTypeId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<double>("Mass")
                         .HasColumnType("REAL");
 
@@ -75,36 +75,17 @@ namespace _3dprint_inventory_api.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("UpdatedOn")
                         .HasColumnType("TEXT");
 
                     b.HasKey("FileId");
 
-                    b.HasIndex("FileTypeId");
-
                     b.HasIndex("ModelId");
 
                     b.ToTable("Files");
-                });
-
-            modelBuilder.Entity("_3dprint_inventory_api.Models.FileType", b =>
-                {
-                    b.Property<int>("FileTypeId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("UpdatedOn")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("FileTypeId");
-
-                    b.ToTable("FileTypes");
                 });
 
             modelBuilder.Entity("_3dprint_inventory_api.Models.Model", b =>
@@ -179,19 +160,11 @@ namespace _3dprint_inventory_api.Migrations
 
             modelBuilder.Entity("_3dprint_inventory_api.Models.File", b =>
                 {
-                    b.HasOne("_3dprint_inventory_api.Models.FileType", "FileType")
-                        .WithMany("Files")
-                        .HasForeignKey("FileTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("_3dprint_inventory_api.Models.Model", "Model")
                         .WithMany("Files")
                         .HasForeignKey("ModelId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("FileType");
 
                     b.Navigation("Model");
                 });
@@ -210,11 +183,6 @@ namespace _3dprint_inventory_api.Migrations
             modelBuilder.Entity("_3dprint_inventory_api.Models.Category", b =>
                 {
                     b.Navigation("Models");
-                });
-
-            modelBuilder.Entity("_3dprint_inventory_api.Models.FileType", b =>
-                {
-                    b.Navigation("Files");
                 });
 
             modelBuilder.Entity("_3dprint_inventory_api.Models.Model", b =>
