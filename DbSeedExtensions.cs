@@ -15,7 +15,16 @@ public static class DbSeedExtension
 
         await db.SeedFileTypesAsync();
 
+        // var cat = ;
+        var model = new Model()
+        {
+            Category = new Category()
+            {
+                Name = "Test",
+            }
+        };
 
+        // await db.Models.AddAsync(model);
 
         await db.SaveChangesAsync();
     }

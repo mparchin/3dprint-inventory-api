@@ -1,3 +1,4 @@
+using _3dprint_inventory_api.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,34 +8,61 @@ public static class ModelsEndpoint
 {
     public static WebApplication MapModelsEndpoint(this WebApplication app)
     {
-        var group = app.MapGroup("models/");
+        var group = app.MapGroup("models");
 
-        group.MapGet("/", (Db db) => GetAllAsync(db));
-        group.MapPost("/", (Db db, Schema.Model model) => CreateAsync(db, model));
-
-
+        group.MapGet("/", GetAllAsync);
+        group.MapPost("/", CreateAsync);
+        group.MapGet("/{modelId}", GetAsync);
+        group.MapPut("/{modelId}", EditAsync);
+        group.MapDelete("/{modelId}", DeleteAsync);
 
         return app;
     }
-
-    private static async Task<Ok<IEnumerable<Schema.Model>>> GetAllAsync(Db db)
-    {
-        var ret = await db.Models
+    private static async Task<Ok<List<Model>>> GetAllAsync(Db db) =>
+        TypedResults.Ok(await db.Models
             .AsNoTracking()
             .Include(m => m.Tags)
             .Include(m => m.Files)
             .Include(m => m.Category)
-            .ToListAsync()
-            .ContinueWith((task) => task.Result.Select(Schema.Model.FromDbModel));
-
-        return TypedResults.Ok(ret);
-    }
-
-    private static async Task<Created<Schema.Model>> CreateAsync(Db db, Schema.Model model)
+            .ToListAsync());
+    private static async Task<Created<Model>> CreateAsync(Db db, Model model)
     {
-        var dbModel = model.ToDbModel();
-        await db.Models.AddAsync(dbModel);
+        await db.Models.AddAsync(model);
         await db.SaveChangesAsync();
-        return TypedResults.Created($"models/{dbModel.ModelId}", Schema.Model.FromDbModel(dbModel));
+        return TypedResults.Created($"models/{model.ModelId}", model);
+    }
+    private static async Task<Results<Ok<Model>, NotFound>> GetAsync(Db db, int modelId)
+    {
+        var model = await db.Models
+            .AsNoTracking()
+            .Include(m => m.Tags)
+            .Include(m => m.Files)
+            .Include(m => m.Category)
+            .FirstOrDefaultAsync(m => m.ModelId == modelId);
+        return model is null ? TypedResults.NotFound() : TypedResults.Ok(model);
+    }
+    private static async Task<Results<Ok<Model>, NotFound, BadRequest>> EditAsync(Db db, int modelId, Model model)
+    {
+        if (modelId != model.ModelId)
+            return TypedResults.BadRequest();
+        if (!await db.Models.AnyAsync(m => m.ModelId == modelId))
+            return TypedResults.NotFound();
+        db.Models.Update(model);
+        model.UpdatedOn = DateTime.Now;
+        await db.SaveChangesAsync();
+        return TypedResults.Ok(model);
+    }
+    private static async Task<Results<NoContent, NotFound>> DeleteAsync(Db db, int modelId)
+    {
+        var model = await db.Models
+            .Include(m => m.Tags)
+            .Include(m => m.Files)
+            .Include(m => m.Category)
+            .FirstOrDefaultAsync(m => m.ModelId == modelId);
+        if (model is null)
+            return TypedResults.NotFound();
+        db.Models.Remove(model);
+        await db.SaveChangesAsync();
+        return TypedResults.NoContent();
     }
 }

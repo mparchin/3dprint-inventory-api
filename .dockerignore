@@ -6,3 +6,4 @@ Properties/
 Data/
 .env
 .git*
+env.example

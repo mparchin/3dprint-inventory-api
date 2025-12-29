@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using _3dprint_inventory_api;
 using _3dprint_inventory_api.Endpoints;
 using DotNetEnv.Configuration;
@@ -8,6 +9,9 @@ builder.Configuration.AddDotNetEnv(options: new(clobberExistingVars: false));
 
 builder.Services.AddDbContext<Db>(options =>
     options.UseSqlite($"Data Source={builder.Configuration.GetDbPath()}"));
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApiDocument(config =>
