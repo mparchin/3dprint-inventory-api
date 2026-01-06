@@ -16,10 +16,10 @@ public class FileType : BaseEntity
         Name = "STL",
     };
 
-    public static FileType Cura { get; } = new()
+    public static FileType Other { get; } = new()
     {
         FileTypeId = 2,
-        Name = "Cura",
+        Name = "Other",
     };
 
     public static FileType Image { get; } = new()

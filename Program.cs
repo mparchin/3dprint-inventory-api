@@ -48,20 +48,25 @@ app.MapModelsEndpoint();
 
 app.MapPost("/files", async (IFormFileCollection collection, IConfiguration config) =>
 {
-    collection.ToList().ForEach(f => Console.WriteLine($"{f.FileName}\t{f.Name}\t{f.Length}\t{f.ContentDisposition}\t{f.ContentType}"));
     //addUser as folder
     var path = config.GetTempFilePath();
     Directory.CreateDirectory(path);
     var tasks = collection.Select(async f =>
     {
         var filePath = Path.Join(path, f.FileName);
+        var fileType = filePath.EndsWith(".apng") || filePath.EndsWith(".png") || filePath.EndsWith(".avif")
+            || filePath.EndsWith(".gif") || filePath.EndsWith(".jpg") || filePath.EndsWith(".jpeg") || filePath.EndsWith(".jfif")
+            || filePath.EndsWith(".pjpeg") || filePath.EndsWith(".pjp") || filePath.EndsWith(".svg") || filePath.EndsWith(".webp")
+            ? FileType.Image
+            : filePath.EndsWith(".stl") ? FileType.STL
+            : FileType.Other;
         using var stream = System.IO.File.OpenWrite(filePath);
         await f.CopyToAsync(stream);
-        return new TempFile(f.FileName, filePath, $"http//localhost:8000/{filePath}");
+        return new TempFile(f.FileName, filePath, $"http//localhost:8000/{filePath}", fileType);
     });
     await Task.WhenAll(tasks);
     return TypedResults.Ok(tasks.Select(t => t.Result));
 }).DisableAntiforgery();
 
 
-app.Run("http://0.0.0.0:8000");
+app.Run("http://localhost:8000");

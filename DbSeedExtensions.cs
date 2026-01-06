@@ -32,8 +32,8 @@ public static class DbSeedExtension
     public static async Task SeedFileTypesAsync(this Db db)
     {
         var fileTypes = await db.FileTypes.ToListAsync();
-        if (fileTypes.All(f => f.FileTypeId != FileType.Cura.FileTypeId))
-            await db.FileTypes.AddAsync(FileType.Cura);
+        if (fileTypes.All(f => f.FileTypeId != FileType.Other.FileTypeId))
+            await db.FileTypes.AddAsync(FileType.Other);
         if (fileTypes.All(f => f.FileTypeId != FileType.STL.FileTypeId))
             await db.FileTypes.AddAsync(FileType.STL);
         if (fileTypes.All(f => f.FileTypeId != FileType.Image.FileTypeId))
