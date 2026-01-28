@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace _3dprint_inventory_api.Models;
 
@@ -8,7 +9,8 @@ public class FileType : BaseEntity
     [DatabaseGenerated(DatabaseGeneratedOption.None)]
     public int FileTypeId { get; set; }
     public string Name { get; set; } = "";
-    public ICollection<Models.File> Files { get; set; } = [];
+    // [JsonIgnore]
+    // public ICollection<Models.File> Files { get; set; } = [];
 
     public static FileType STL { get; } = new()
     {

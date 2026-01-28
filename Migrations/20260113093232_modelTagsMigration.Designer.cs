@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using _3dprint_inventory_api;
 
@@ -10,9 +11,11 @@ using _3dprint_inventory_api;
 namespace _3dprint_inventory_api.Migrations
 {
     [DbContext(typeof(Db))]
-    partial class DbModelSnapshot : ModelSnapshot
+    [Migration("20260113093232_modelTagsMigration")]
+    partial class modelTagsMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
@@ -166,49 +169,6 @@ namespace _3dprint_inventory_api.Migrations
                     b.ToTable("ModelTags");
                 });
 
-            modelBuilder.Entity("_3dprint_inventory_api.Models.Spool", b =>
-                {
-                    b.Property<int>("SpoolId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ColorHex")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FilamentName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<double>("FilamentWeight")
-                        .HasColumnType("REAL");
-
-                    b.Property<string>("Material")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MultiColorHexes")
-                        .HasColumnType("TEXT");
-
-                    b.Property<double>("Price")
-                        .HasColumnType("REAL");
-
-                    b.Property<double>("RemainingWeight")
-                        .HasColumnType("REAL");
-
-                    b.Property<DateTime>("UpdatedOn")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("VendorName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("SpoolId");
-
-                    b.ToTable("Spools");
-                });
-
             modelBuilder.Entity("_3dprint_inventory_api.Models.Tag", b =>
                 {
                     b.Property<int>("TagId")
@@ -233,7 +193,7 @@ namespace _3dprint_inventory_api.Migrations
             modelBuilder.Entity("_3dprint_inventory_api.Models.File", b =>
                 {
                     b.HasOne("_3dprint_inventory_api.Models.FileType", "FileType")
-                        .WithMany()
+                        .WithMany("Files")
                         .HasForeignKey("FileTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -282,6 +242,11 @@ namespace _3dprint_inventory_api.Migrations
             modelBuilder.Entity("_3dprint_inventory_api.Models.Category", b =>
                 {
                     b.Navigation("Models");
+                });
+
+            modelBuilder.Entity("_3dprint_inventory_api.Models.FileType", b =>
+                {
+                    b.Navigation("Files");
                 });
 
             modelBuilder.Entity("_3dprint_inventory_api.Models.Model", b =>

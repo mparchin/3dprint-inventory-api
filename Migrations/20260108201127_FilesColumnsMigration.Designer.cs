@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using _3dprint_inventory_api;
 
@@ -10,12 +11,29 @@ using _3dprint_inventory_api;
 namespace _3dprint_inventory_api.Migrations
 {
     [DbContext(typeof(Db))]
-    partial class DbModelSnapshot : ModelSnapshot
+    [Migration("20260108201127_FilesColumnsMigration")]
+    partial class FilesColumnsMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
+
+            modelBuilder.Entity("ModelTag", b =>
+                {
+                    b.Property<int>("ModelsModelId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TagsTagId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("ModelsModelId", "TagsTagId");
+
+                    b.HasIndex("TagsTagId");
+
+                    b.ToTable("ModelTag");
+                });
 
             modelBuilder.Entity("_3dprint_inventory_api.Models.Category", b =>
                 {
@@ -66,10 +84,11 @@ namespace _3dprint_inventory_api.Migrations
                     b.Property<int?>("Repeatations")
                         .HasColumnType("INTEGER");
 
-                    b.Property<double>("Size")
-                        .HasColumnType("REAL");
-
                     b.Property<DateTime>("UpdatedOn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<double?>("Weight")
@@ -148,67 +167,6 @@ namespace _3dprint_inventory_api.Migrations
                     b.ToTable("Models");
                 });
 
-            modelBuilder.Entity("_3dprint_inventory_api.Models.ModelTag", b =>
-                {
-                    b.Property<int>("ModelId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("TagId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("ModelId", "TagId");
-
-                    b.HasIndex("TagId");
-
-                    b.HasIndex("ModelId", "TagId")
-                        .IsUnique();
-
-                    b.ToTable("ModelTags");
-                });
-
-            modelBuilder.Entity("_3dprint_inventory_api.Models.Spool", b =>
-                {
-                    b.Property<int>("SpoolId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ColorHex")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FilamentName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<double>("FilamentWeight")
-                        .HasColumnType("REAL");
-
-                    b.Property<string>("Material")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MultiColorHexes")
-                        .HasColumnType("TEXT");
-
-                    b.Property<double>("Price")
-                        .HasColumnType("REAL");
-
-                    b.Property<double>("RemainingWeight")
-                        .HasColumnType("REAL");
-
-                    b.Property<DateTime>("UpdatedOn")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("VendorName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("SpoolId");
-
-                    b.ToTable("Spools");
-                });
-
             modelBuilder.Entity("_3dprint_inventory_api.Models.Tag", b =>
                 {
                     b.Property<int>("TagId")
@@ -230,10 +188,25 @@ namespace _3dprint_inventory_api.Migrations
                     b.ToTable("Tags");
                 });
 
+            modelBuilder.Entity("ModelTag", b =>
+                {
+                    b.HasOne("_3dprint_inventory_api.Models.Model", null)
+                        .WithMany()
+                        .HasForeignKey("ModelsModelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("_3dprint_inventory_api.Models.Tag", null)
+                        .WithMany()
+                        .HasForeignKey("TagsTagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("_3dprint_inventory_api.Models.File", b =>
                 {
                     b.HasOne("_3dprint_inventory_api.Models.FileType", "FileType")
-                        .WithMany()
+                        .WithMany("Files")
                         .HasForeignKey("FileTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -260,40 +233,19 @@ namespace _3dprint_inventory_api.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("_3dprint_inventory_api.Models.ModelTag", b =>
-                {
-                    b.HasOne("_3dprint_inventory_api.Models.Model", "Model")
-                        .WithMany("ModelTags")
-                        .HasForeignKey("ModelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("_3dprint_inventory_api.Models.Tag", "Tag")
-                        .WithMany("ModelTags")
-                        .HasForeignKey("TagId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Model");
-
-                    b.Navigation("Tag");
-                });
-
             modelBuilder.Entity("_3dprint_inventory_api.Models.Category", b =>
                 {
                     b.Navigation("Models");
                 });
 
+            modelBuilder.Entity("_3dprint_inventory_api.Models.FileType", b =>
+                {
+                    b.Navigation("Files");
+                });
+
             modelBuilder.Entity("_3dprint_inventory_api.Models.Model", b =>
                 {
                     b.Navigation("Files");
-
-                    b.Navigation("ModelTags");
-                });
-
-            modelBuilder.Entity("_3dprint_inventory_api.Models.Tag", b =>
-                {
-                    b.Navigation("ModelTags");
                 });
 #pragma warning restore 612, 618
         }

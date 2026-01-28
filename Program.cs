@@ -1,72 +1,85 @@
 using System.Text.Json.Serialization;
 using _3dprint_inventory_api;
 using _3dprint_inventory_api.Endpoints;
-using _3dprint_inventory_api.Models;
+using _3dprint_inventory_api.Services;
 using DotNetEnv.Configuration;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseKestrel(options => options.Limits.MaxRequestBodySize = 300 * 1024 * 1024);
-builder.Configuration.AddDotNetEnv(options: new(clobberExistingVars: false));
 
-builder.Services.AddDbContext<Db>(options =>
-    options.UseSqlite($"Data Source={builder.Configuration.GetDbPath()}"));
+builder.Configuration.AddDotNetEnv(options: new(clobberExistingVars: false));
+builder.WebHost.UseKestrel(options => options.Limits.MaxRequestBodySize = 100 * 1024 * 1024);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
-
-// builder.Services.AddAntiforgery();
-builder.Services.AddCors(options =>
-    options.AddDefaultPolicy(builder =>
-        builder.WithOrigins("http://localhost:3000", "http://localhost:8000")));
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApiDocument(config =>
+{
+    options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+})
+.AddSingleton<TempFilesDb>()
+.AddScoped<TempFilesService>()
+.AddDbContext<Db>(options =>
+{
+    options.EnableSensitiveDataLogging();
+    options.UseSqlite($"Data Source={builder.Configuration.GetDbPath()}");
+})
+.AddCors(options =>
+    options.AddDefaultPolicy(b =>
+    {
+        b.WithOrigins(builder.Configuration.GetFrontHost().AbsoluteUri.TrimEnd('/'),
+            builder.Configuration.GetHost().AbsoluteUri.TrimEnd('/'));
+        b.AllowAnyHeader();
+        b.AllowAnyMethod();
+    }))
+.AddHostedService<TempFilesService>()
+.AddHostedService<SpoolmanService>()
+.AddEndpointsApiExplorer()
+.AddOpenApiDocument(config =>
 {
     config.DocumentName = "3dprint-inventory-api";
     config.Title = "3dprint-inventory-api v1";
     config.Version = "v1";
 });
 
-var app = builder.Build();
+await using var app = builder.Build();
 await app.Services.MigrateAsync();
 
-// app.UseAntiforgery();
-app.UseCors();
-app.UseOpenApi();
-app.UseSwaggerUi(config =>
+app.UseCors()
+    .UseOpenApi()
+    .UseSwaggerUi(config =>
+    {
+        config.DocumentTitle = "3dprint-inventory-api";
+        config.Path = "/swagger";
+        config.DocumentPath = "/swagger/{documentName}/swagger.json";
+        config.DocExpansion = "list";
+    });
+app.UseStaticFiles(new StaticFileOptions()
 {
-    config.DocumentTitle = "3dprint-inventory-api";
-    config.Path = "/swagger";
-    config.DocumentPath = "/swagger/{documentName}/swagger.json";
-    config.DocExpansion = "list";
+    FileProvider = new PhysicalFileProvider(
+            Path.IsPathFullyQualified(app.Configuration.GetFilePath())
+                ? app.Configuration.GetFilePath()
+                : Path.Join(Environment.CurrentDirectory, app.Configuration.GetFilePath())),
+    RequestPath = "/mdl",
+    ServeUnknownFileTypes = true,
+    HttpsCompression = HttpsCompressionMode.Compress,
+});
+app.UseStaticFiles(new StaticFileOptions()
+{
+    FileProvider = new PhysicalFileProvider(
+            Path.IsPathFullyQualified(app.Configuration.GetTempFilePath())
+                ? app.Configuration.GetTempFilePath()
+                : Path.Join(Environment.CurrentDirectory, app.Configuration.GetTempFilePath())),
+    RequestPath = "/tmp",
+    ServeUnknownFileTypes = true,
+    HttpsCompression = HttpsCompressionMode.Compress,
 });
 
-
 app.MapGet("/", () => "Hello World!");
-app.MapModelsEndpoint();
 
-app.MapPost("/files", async (IFormFileCollection collection, IConfiguration config) =>
-{
-    //addUser as folder
-    var path = config.GetTempFilePath();
-    Directory.CreateDirectory(path);
-    var tasks = collection.Select(async f =>
-    {
-        var filePath = Path.Join(path, f.FileName);
-        var fileType = filePath.EndsWith(".apng") || filePath.EndsWith(".png") || filePath.EndsWith(".avif")
-            || filePath.EndsWith(".gif") || filePath.EndsWith(".jpg") || filePath.EndsWith(".jpeg") || filePath.EndsWith(".jfif")
-            || filePath.EndsWith(".pjpeg") || filePath.EndsWith(".pjp") || filePath.EndsWith(".svg") || filePath.EndsWith(".webp")
-            ? FileType.Image
-            : filePath.EndsWith(".stl") ? FileType.STL
-            : FileType.Other;
-        using var stream = System.IO.File.OpenWrite(filePath);
-        await f.CopyToAsync(stream);
-        return new TempFile(f.FileName, filePath, $"http//localhost:8000/{filePath}", fileType);
-    });
-    await Task.WhenAll(tasks);
-    return TypedResults.Ok(tasks.Select(t => t.Result));
-}).DisableAntiforgery();
-
-
-app.Run("http://localhost:8000");
+await app.MapModelsEndpoint()
+    .MapFilesEndpoint()
+    .MapCategoriesEndpoint()
+    .MapTagsEndpoint()
+    .MapSpoolsEndpoint()
+    .RunAsync(app.Configuration.GetHost().AbsoluteUri);
